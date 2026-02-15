@@ -796,6 +796,10 @@ html {
     justify-content: center;
   }
 
+  .header-buttons {
+    display: none;
+  }
+
   .cta-buttons {
     justify-content: center;
   }
