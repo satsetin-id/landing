@@ -868,6 +868,8 @@ body.legal-page {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   padding: 16px 32px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
@@ -879,12 +881,18 @@ body.legal-page {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .legal-nav .nav-link {
   color: var(--primary);
   font-weight: 600;
   text-decoration: none;
+}
+
+.legal-nav .btn {
+  padding: 10px 16px;
+  font-size: 13px;
 }
 
 .legal-content {
@@ -974,6 +982,9 @@ body.legal-page {
 @media (max-width: 640px) {
   .legal-header {
     padding: 14px 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   .legal-content {
