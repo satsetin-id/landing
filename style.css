@@ -879,6 +879,10 @@ html {
     font-size: 13px;
   }
 
+  .header-buttons {
+    display: none;
+  }
+
   .image-content {
     max-width: 360px;
     width: 100%;
