@@ -72,7 +72,9 @@
     <header id="top">
       <a href="#top" class="logo brand">
         <img
-          src="https://cdn.jsdelivr.net/gh/satsetin-id/landing/icon.png"
+          src="https://cdn.jsdelivr.net/gh/satsetin-id/landing/icon-96.webp"
+          width="32"
+          height="32"
           alt="Logo Satsetin"
           class="brand-icon"
         />
@@ -109,11 +111,20 @@
         </div>
       </div>
       <div class="image-content">
-        <img
-          src="https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero.png"
-          alt="Ilustrasi Satsetin"
-          class="hero-illustration"
-        />
+        <picture>
+          <source
+            type="image/webp"
+            srcset="https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero-900.webp 900w"
+          />
+          <img
+            src="https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero.png"
+            width="900"
+            height="808"
+            alt="Ilustrasi Satsetin"
+            class="hero-illustration"
+            loading="lazy"
+          />
+        </picture>
       </div>
     </main>
 
