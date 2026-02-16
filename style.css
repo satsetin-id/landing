@@ -299,7 +299,7 @@ header {
 /* Phone Mockup */
 .image-content {
   position: relative;
-  max-width: 480px;
+  max-width: min(420px, 45vw);
 }
 
 .image-content::before {
@@ -888,7 +888,7 @@ html {
   }
 
   .image-content {
-    max-width: 360px;
+    max-width: 320px;
     width: 100%;
   }
 
