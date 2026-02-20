@@ -299,7 +299,7 @@
       </div>
     </section>
 
-    <div id="downloadSafetyModal" class="download-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div id="downloadSafetyModal" class="download-modal" aria-hidden="true" role="dialog" aria-modal="true" hidden>
       <div class="download-modal-backdrop" data-modal-close></div>
       <div class="download-modal-card" role="document" aria-labelledby="downloadModalTitle">
         <button type="button" class="download-modal-close" aria-label="Tutup" data-modal-close>
@@ -585,6 +585,7 @@
         function openModal() {
           if (!modal) return;
           syncConfirmButtonUrl();
+          modal.removeAttribute("hidden");
           modal.classList.add("open");
           modal.setAttribute("aria-hidden", "false");
           document.body.classList.add("modal-open");
@@ -594,10 +595,12 @@
           if (!modal) return;
           modal.classList.remove("open");
           modal.setAttribute("aria-hidden", "true");
+          modal.setAttribute("hidden", "");
           document.body.classList.remove("modal-open");
         }
 
         if (modal) {
+          modal.setAttribute("hidden", "");
           modal.querySelectorAll("[data-modal-close]").forEach((closeTarget) => {
             closeTarget.addEventListener("click", closeModal);
           });
