@@ -11,8 +11,8 @@
     />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://satsetin.id/" />
-    <link rel="icon" href="https://cdn.jsdelivr.net/gh/satsetin-id/landing/icon.png" sizes="32x32" type="image/png" />
-    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/satsetin-id/landing/icon.png" />
+    <link rel="icon" href="icon.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="icon.png" />
     <meta property="og:title" content="Satsetin - Bot Telegram E-commerce dengan QRIS Otomatis" />
     <meta
       property="og:description"
@@ -21,7 +21,7 @@
     <meta property="og:url" content="https://satsetin.id" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Satsetin" />
-    <meta property="og:image" content="https://cdn.jsdelivr.net/gh/satsetin-id/landing/meta.webp" />
+    <meta property="og:image" content="https://satsetin.id/meta.webp" />
     <meta property="og:image:type" content="image/webp" />
     <meta property="og:image:alt" content="Satsetin bot Telegram e-commerce dengan QRIS pribadi" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -30,7 +30,7 @@
       name="twitter:description"
       content="Buat toko online di Telegram dengan QRIS pribadi. Bot otomatis, auto delivery, tanpa perantara."
     />
-    <meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/satsetin-id/landing/meta.webp" />
+    <meta name="twitter:image" content="https://satsetin.id/meta.webp" />
     <meta name="twitter:image:alt" content="Satsetin bot Telegram e-commerce dengan QRIS pribadi" />
     <script type="application/ld+json">
       {
@@ -40,7 +40,7 @@
             "@type": "Organization",
             "name": "Satsetin",
             "url": "https://satsetin.id",
-            "logo": "https://cdn.jsdelivr.net/gh/satsetin-id/landing/meta.webp",
+            "logo": "https://satsetin.id/meta.webp",
             "sameAs": []
           },
           {
@@ -61,9 +61,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
+      as="style"
     />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      />
+    </noscript>
 
     <title>Satsetin | Bot Telegram E-commerce dengan QRIS Otomatis</title>
     <link rel="stylesheet" href="style.css" />
@@ -72,7 +85,7 @@
     <header id="top">
       <a href="#top" class="logo brand">
         <img
-          src="https://cdn.jsdelivr.net/gh/satsetin-id/landing/icon-64.webp"
+          src="icon-64.webp"
           width="32"
           height="32"
           alt="Logo Satsetin"
@@ -126,18 +139,20 @@
           <source
             type="image/webp"
             srcset="
-              https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero-720.webp  720w,
-              https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero.webp     1252w
+              hero-720.webp  720w,
+              hero.webp     1252w
             "
             sizes="(max-width: 900px) 90vw, 520px"
           />
           <img
-            src="https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero-720.webp"
+            src="hero-720.webp"
             width="720"
             height="646"
             alt="Ilustrasi Satsetin"
             class="hero-illustration"
-            loading="lazy"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
           />
         </picture>
       </div>
@@ -552,6 +567,8 @@
         const modal = document.getElementById("downloadSafetyModal");
         const confirmDownloadBtn = document.getElementById("confirmDownloadBtn");
         let resolvedDownloadUrl = fallbackUrl;
+        let hasResolvedRelease = false;
+        let inflightResolve = null;
 
         function syncConfirmButtonUrl() {
           if (!confirmDownloadBtn) return;
@@ -586,12 +603,52 @@
           });
         }
 
+        async function resolveLatestReleaseUrl() {
+          if (hasResolvedRelease) return resolvedDownloadUrl;
+          if (inflightResolve) return inflightResolve;
+
+          inflightResolve = (async () => {
+            try {
+              const response = await fetch(apiUrl, { headers: { Accept: "application/vnd.github+json" } });
+              if (!response.ok) return resolvedDownloadUrl;
+
+              const releases = await response.json();
+              if (!Array.isArray(releases)) return resolvedDownloadUrl;
+
+              for (const release of releases) {
+                const assets = Array.isArray(release && release.assets) ? release.assets : [];
+                const apkAsset =
+                  assets.find((asset) => typeof asset.name === "string" && asset.name === "app-release.apk") ||
+                  assets.find((asset) => typeof asset.name === "string" && asset.name.endsWith(".apk"));
+
+                if (apkAsset && apkAsset.browser_download_url) {
+                  resolvedDownloadUrl = apkAsset.browser_download_url;
+                  break;
+                }
+              }
+            } catch (error) {
+              // Keep fallback URL on fetch errors.
+            } finally {
+              hasResolvedRelease = true;
+              inflightResolve = null;
+              syncConfirmButtonUrl();
+              buttons.forEach((button) => {
+                button.href = resolvedDownloadUrl;
+              });
+            }
+            return resolvedDownloadUrl;
+          })();
+
+          return inflightResolve;
+        }
+
         buttons.forEach((button) => {
           button.href = fallbackUrl;
           button.target = "_self";
           button.rel = "noopener";
           button.addEventListener("click", (event) => {
             event.preventDefault();
+            resolveLatestReleaseUrl();
             openModal();
           });
         });
@@ -600,36 +657,6 @@
           confirmDownloadBtn.addEventListener("click", closeModal);
         }
         syncConfirmButtonUrl();
-
-        try {
-          const response = await fetch(apiUrl, { headers: { Accept: "application/vnd.github+json" } });
-          if (!response.ok) return;
-
-          const releases = await response.json();
-          if (!Array.isArray(releases)) return;
-
-          let apkUrl = "";
-          for (const release of releases) {
-            const assets = Array.isArray(release && release.assets) ? release.assets : [];
-            const apkAsset =
-              assets.find((asset) => typeof asset.name === "string" && asset.name === "app-release.apk") ||
-              assets.find((asset) => typeof asset.name === "string" && asset.name.endsWith(".apk"));
-
-            if (apkAsset && apkAsset.browser_download_url) {
-              apkUrl = apkAsset.browser_download_url;
-              break;
-            }
-          }
-
-          if (!apkUrl) return;
-          resolvedDownloadUrl = apkUrl;
-          syncConfirmButtonUrl();
-          buttons.forEach((button) => {
-            button.href = apkUrl;
-          });
-        } catch (error) {
-          // Keep fallback URL on fetch errors.
-        }
       })();
     </script>
   </body>
