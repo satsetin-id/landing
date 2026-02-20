@@ -283,6 +283,32 @@
       </div>
     </section>
 
+    <div id="downloadSafetyModal" class="download-modal" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="download-modal-backdrop" data-modal-close></div>
+      <div class="download-modal-card" role="document" aria-labelledby="downloadModalTitle">
+        <button type="button" class="download-modal-close" aria-label="Tutup" data-modal-close>
+          &times;
+        </button>
+        <h3 id="downloadModalTitle">Sebelum Download APK</h3>
+        <p class="download-modal-intro">
+          Saat ini Satsetin masih dalam proses approval Google Play. Sambil menunggu, kami sediakan APK resmi dari channel kami,
+          jadi beberapa perangkat bisa menampilkan peringatan Play Protect.
+        </p>
+        <ol class="download-modal-steps">
+          <li>Saat peringatan muncul, buka detail dan pilih opsi untuk lanjut install jika kamu yakin sumbernya resmi.</li>
+          <li>Jika opsi tidak muncul, buka Play Store > profil > Play Protect > setelan, lalu jeda scan sementara.</li>
+          <li>Setelah aplikasi terpasang, aktifkan kembali Play Protect agar perangkat tetap terlindungi.</li>
+        </ol>
+        <p class="download-modal-note">
+          Demi keamanan: hanya install dari link resmi Satsetin, jangan install APK hasil forward/ubah pihak lain.
+        </p>
+        <div class="download-modal-actions">
+          <button type="button" class="btn outline" data-modal-close>Nanti Dulu</button>
+          <a id="confirmDownloadBtn" href="#" class="btn primary">Saya Paham, Lanjut Download</a>
+        </div>
+      </div>
+    </div>
+
     <!-- FAQ -->
     <section class="help-container">
       <div class="faq-header">
@@ -523,12 +549,57 @@
 
         const fallbackUrl = "https://github.com/satsetin-id/landing/releases/download/v0.0.1-beta/app-release.apk";
         const apiUrl = "https://api.github.com/repos/satsetin-id/landing/releases?per_page=10";
+        const modal = document.getElementById("downloadSafetyModal");
+        const confirmDownloadBtn = document.getElementById("confirmDownloadBtn");
+        let resolvedDownloadUrl = fallbackUrl;
+
+        function syncConfirmButtonUrl() {
+          if (!confirmDownloadBtn) return;
+          confirmDownloadBtn.href = resolvedDownloadUrl;
+          confirmDownloadBtn.target = "_self";
+          confirmDownloadBtn.rel = "noopener";
+        }
+
+        function openModal() {
+          if (!modal) return;
+          syncConfirmButtonUrl();
+          modal.classList.add("open");
+          modal.setAttribute("aria-hidden", "false");
+          document.body.classList.add("modal-open");
+        }
+
+        function closeModal() {
+          if (!modal) return;
+          modal.classList.remove("open");
+          modal.setAttribute("aria-hidden", "true");
+          document.body.classList.remove("modal-open");
+        }
+
+        if (modal) {
+          modal.querySelectorAll("[data-modal-close]").forEach((closeTarget) => {
+            closeTarget.addEventListener("click", closeModal);
+          });
+          document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && modal.classList.contains("open")) {
+              closeModal();
+            }
+          });
+        }
 
         buttons.forEach((button) => {
           button.href = fallbackUrl;
           button.target = "_self";
           button.rel = "noopener";
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            openModal();
+          });
         });
+
+        if (confirmDownloadBtn) {
+          confirmDownloadBtn.addEventListener("click", closeModal);
+        }
+        syncConfirmButtonUrl();
 
         try {
           const response = await fetch(apiUrl, { headers: { Accept: "application/vnd.github+json" } });
@@ -551,6 +622,8 @@
           }
 
           if (!apkUrl) return;
+          resolvedDownloadUrl = apkUrl;
+          syncConfirmButtonUrl();
           buttons.forEach((button) => {
             button.href = apkUrl;
           });
