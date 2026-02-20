@@ -93,8 +93,15 @@
     <main class="container hero">
       <div class="text-content">
         <h1>
-          Jual Produkmu via <span class="highlight">Bot Telegram</span> dan
-          <span class="highlight">Bayar ke QRIS Pribadi</span> mulai dari Rp. 500 perak!
+          Jual Produkmu via
+          <span class="hero-slider-outer"
+            ><span class="hero-slider-wrapper" id="heroSlider">
+              <span class="hero-slide active">Bot Telegram</span>
+              <span class="hero-slide">Web Pribadi</span><span class="hero-slide">Bot Whatsapp</span></span
+            >
+            <span class="coming-soon-tip" id="comingSoonTip">Segera hadir</span></span
+          >
+          dan <span class="highlight">Bayar ke QRIS Pribadi</span> mulai dari Rp. 500 perak!
         </h1>
 
         <p>Pembayaran langsung di cek otomatis oleh sistem tanpa perantara dan biaya tambahan!</p>
@@ -115,8 +122,8 @@
           <source
             type="image/webp"
             srcset="
-              https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero-720.webp 720w,
-              https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero.webp 1252w
+              https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero-720.webp  720w,
+              https://cdn.jsdelivr.net/gh/satsetin-id/landing/hero.webp     1252w
             "
             sizes="(max-width: 900px) 90vw, 520px"
           />
@@ -136,15 +143,15 @@
     <section class="stats-section">
       <div class="stats-container">
         <div class="stat-item">
-          <span class="stat-value">Rp 1.255.607.577</span>
-          <span class="stat-label">Total Transaksi</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">Rp 24.616.590</span>
+          <span class="stat-value">Rp 62.400.000</span>
           <span class="stat-label">Total Nilai Transaksi</span>
         </div>
         <div class="stat-item">
-          <span class="stat-value">1.735</span>
+          <span class="stat-value">1.248</span>
+          <span class="stat-label">Total Transaksi</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">143</span>
           <span class="stat-label">Total Merchant</span>
         </div>
       </div>
@@ -411,6 +418,79 @@
           });
         });
       });
+
+      // Hero Slider
+      (function () {
+        const wrapper = document.getElementById("heroSlider");
+        const tip = document.getElementById("comingSoonTip");
+        if (!wrapper) return;
+        const slides = Array.from(wrapper.querySelectorAll(".hero-slide"));
+        let current = 0;
+        let slideWidths = [];
+        const COMING_SOON_INDICES = [1, 2]; // Web & WA
+
+        function measureWidths() {
+          // Range.getBoundingClientRect measures actual text ink width,
+          // independent of any grid/container constraint.
+          return slides.map((slide) => {
+            const range = document.createRange();
+            range.selectNodeContents(slide);
+            const rect = range.getBoundingClientRect();
+            const isMobile = window.matchMedia("(max-width: 600px)").matches;
+            const extraWidthWeb = isMobile ? 12 : 8;
+            const extraWidthDefault = isMobile ? 8 : 0;
+            const extraWidth = slide.textContent.trim() === "Web Pribadi" ? extraWidthWeb : extraWidthDefault;
+            return Math.ceil(rect.width) + extraWidth;
+          });
+        }
+
+        function applyWidth(noAnimate) {
+          if (noAnimate) wrapper.style.transition = "none";
+          wrapper.style.width = slideWidths[current] + "px";
+          if (noAnimate) requestAnimationFrame(() => requestAnimationFrame(() => (wrapper.style.transition = "")));
+        }
+
+        // Initial pass (may use fallback font briefly)
+        slideWidths = measureWidths();
+        applyWidth(true);
+        if (tip) tip.classList.toggle("visible", COMING_SOON_INDICES.includes(current));
+
+        // Re-measure once web fonts are fully loaded
+        (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+          slideWidths = measureWidths();
+          applyWidth(true);
+        });
+
+        // Recalculate on resize (font-size changes via media query)
+        let resizeTimer;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            slideWidths = measureWidths();
+            applyWidth(true);
+          }, 150);
+        });
+
+        function goToSlide(next) {
+          const prev = current;
+          current = next;
+
+          slides[prev].classList.remove("active");
+          slides[prev].classList.add("slide-exit");
+          slides[current].classList.remove("slide-exit");
+          slides[current].classList.add("active");
+          wrapper.style.width = slideWidths[current] + "px";
+          if (tip) tip.classList.toggle("visible", COMING_SOON_INDICES.includes(current));
+
+          setTimeout(() => {
+            slides[prev].classList.remove("slide-exit");
+          }, 550);
+        }
+
+        setInterval(() => {
+          goToSlide((current + 1) % slides.length);
+        }, 2500);
+      })();
 
       // Smooth scroll
       document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
