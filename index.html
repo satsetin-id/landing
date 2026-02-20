@@ -576,7 +576,8 @@
         function syncConfirmButtonUrl() {
           if (!confirmDownloadBtn) return;
           confirmDownloadBtn.href = resolvedDownloadUrl;
-          confirmDownloadBtn.target = "_blank";
+          confirmDownloadBtn.target = "_self";
+          confirmDownloadBtn.setAttribute("download", "app-release.apk");
           confirmDownloadBtn.rel = "noopener";
         }
 
@@ -657,7 +658,11 @@
         });
 
         if (confirmDownloadBtn) {
-          confirmDownloadBtn.addEventListener("click", closeModal);
+          confirmDownloadBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            closeModal();
+            window.location.assign(resolvedDownloadUrl);
+          });
         }
         syncConfirmButtonUrl();
       })();
