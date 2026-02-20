@@ -111,7 +111,11 @@
           <span class="badge">Auto Delivery</span>
         </div>
         <div class="cta-buttons">
-          <a href="https://github.com/satsetin-id/landing/releases/latest" target="_blank" class="btn primary large"
+          <a
+            href="https://github.com/satsetin-id/landing/releases/latest"
+            target="_blank"
+            class="btn primary large"
+            data-apk-download
             >Download Sekarang</a
           >
           <a href="#features" class="btn outline large">Lihat Fitur</a>
@@ -264,7 +268,12 @@
         <h2>Download Aplikasi Satsetin</h2>
         <p>Kelola toko Telegram kamu dari mana saja dengan aplikasi Android.</p>
         <div class="download-buttons">
-          <a href="https://github.com/satsetin-id/landing/releases/latest" target="_blank" class="btn primary large">
+          <a
+            href="https://github.com/satsetin-id/landing/releases/latest"
+            target="_blank"
+            class="btn primary large"
+            data-apk-download
+          >
             Download Sekarang
           </a>
         </div>
@@ -376,7 +385,11 @@
     <section class="cta-section">
       <h2>Siap Mulai Jualan?</h2>
       <p>Download sekarang dan buat toko Telegram pertamamu dalam hitungan menit.</p>
-      <a href="https://github.com/satsetin-id/landing/releases/latest" target="_blank" class="btn primary large"
+      <a
+        href="https://github.com/satsetin-id/landing/releases/latest"
+        target="_blank"
+        class="btn primary large"
+        data-apk-download
         >Download Satsetin</a
       >
     </section>
@@ -502,6 +515,49 @@
           }
         });
       });
+
+      // Resolve newest APK from releases list (includes pre-release).
+      (async function () {
+        const buttons = Array.from(document.querySelectorAll("[data-apk-download]"));
+        if (!buttons.length) return;
+
+        const fallbackUrl = "https://github.com/satsetin-id/landing/releases/download/v0.0.1-beta/app-release.apk";
+        const apiUrl = "https://api.github.com/repos/satsetin-id/landing/releases?per_page=10";
+
+        buttons.forEach((button) => {
+          button.href = fallbackUrl;
+          button.target = "_blank";
+          button.rel = "noopener";
+        });
+
+        try {
+          const response = await fetch(apiUrl, { headers: { Accept: "application/vnd.github+json" } });
+          if (!response.ok) return;
+
+          const releases = await response.json();
+          if (!Array.isArray(releases)) return;
+
+          let apkUrl = "";
+          for (const release of releases) {
+            const assets = Array.isArray(release && release.assets) ? release.assets : [];
+            const apkAsset =
+              assets.find((asset) => typeof asset.name === "string" && asset.name === "app-release.apk") ||
+              assets.find((asset) => typeof asset.name === "string" && asset.name.endsWith(".apk"));
+
+            if (apkAsset && apkAsset.browser_download_url) {
+              apkUrl = apkAsset.browser_download_url;
+              break;
+            }
+          }
+
+          if (!apkUrl) return;
+          buttons.forEach((button) => {
+            button.href = apkUrl;
+          });
+        } catch (error) {
+          // Keep fallback URL on fetch errors.
+        }
+      })();
     </script>
   </body>
 </html>
