@@ -197,6 +197,7 @@
         const content = document.getElementById("content");
         const errorNode = document.getElementById("error");
         const poller = document.getElementById("poller");
+        let lastRenderKey = "";
 
         function escapeHtml(v) {
           return String(v || "")
@@ -302,6 +303,12 @@
           `;
         }
 
+        function renderIfChanged(key, renderFn) {
+          if (key === lastRenderKey) return;
+          renderFn();
+          lastRenderKey = key;
+        }
+
         const paymentID = getPaymentID();
         if (!paymentID) {
           renderNotFound();
@@ -327,21 +334,47 @@
           errorNode.hidden = true;
 
           if (xhr.status === 200 && payload && payload.data) {
-            renderPending(payload.data);
+            const d = payload.data;
+            const key = JSON.stringify({
+              code: 200,
+              status: d.status,
+              id: d.id,
+              amount: d.amount,
+              total_amount: d.total_amount,
+              note: d.note,
+              expires_at: d.expires_at,
+              qr_image_url: d.qr_image_url,
+            });
+            renderIfChanged(key, function () {
+              renderPending(d);
+            });
             return;
           }
 
           if (xhr.status === 410 && payload && payload.data) {
+            const d = payload.data;
+            const key = JSON.stringify({
+              code: 410,
+              status: d.status,
+              id: d.id,
+              message: payload.message || "",
+              paid_at: d.paid_at,
+              expires_at: d.expires_at,
+            });
             if (payload.data.status === "paid") {
-              renderPaid(payload.data, payload.message);
+              renderIfChanged(key, function () {
+                renderPaid(d, payload.message);
+              });
               return;
             }
-            renderExpired(payload.data, payload.message);
+            renderIfChanged(key, function () {
+              renderExpired(d, payload.message);
+            });
             return;
           }
 
           if (xhr.status === 404) {
-            renderNotFound();
+            renderIfChanged("404", renderNotFound);
             return;
           }
 
