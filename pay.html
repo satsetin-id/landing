@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satsetin Payment Link</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="icon.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+      :root {
+        --bg0: #0b1022;
+        --bg1: #111934;
+        --card: rgba(255, 255, 255, 0.95);
+        --line: #d7dbec;
+        --ink: #121629;
+        --muted: #5c647e;
+        --brand: #2e7dff;
+        --brand2: #16b5ff;
+        --ok: #0f8b4c;
+        --warn: #aa4d1d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 15% 15%, rgba(46, 125, 255, 0.34), transparent 42%),
+          radial-gradient(circle at 85% 10%, rgba(22, 181, 255, 0.18), transparent 45%),
+          linear-gradient(160deg, var(--bg0), var(--bg1));
+        display: grid;
+        place-items: center;
+        padding: 22px;
+      }
+
+      .shell {
+        width: min(560px, 100%);
+      }
+
+      .brand {
+        color: #e8efff;
+        text-align: center;
+        margin-bottom: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 20px 40px rgba(3, 7, 20, 0.35);
+      }
+
+      .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 1.18rem;
+      }
+
+      .badge {
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .badge.pending {
+        color: #0a3a8f;
+        background: #dbe9ff;
+      }
+
+      .badge.paid {
+        color: #0d6a3b;
+        background: #d7f4e6;
+      }
+
+      .badge.expired {
+        color: #8f3c16;
+        background: #ffe6d8;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .item .k {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .item .v {
+        font-weight: 700;
+        font-size: 15px;
+        word-break: break-word;
+      }
+
+      .state {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .state p {
+        margin: 6px 0;
+      }
+
+      .state.pending {
+        border-color: #a8c6ff;
+      }
+
+      .state.paid {
+        border-color: #9addbd;
+        color: var(--ok);
+      }
+
+      .state.expired {
+        border-color: #ffc9ad;
+        color: var(--warn);
+      }
+
+      .qr {
+        width: min(300px, 100%);
+        display: block;
+        margin: 10px auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .note {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #d5deff;
+        text-align: center;
+      }
+
+      .error {
+        color: #ffd4c2;
+        text-align: center;
+        margin-top: 10px;
+      }
+
+      @media (max-width: 560px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <div class="brand">SATSETIN PAYMENT LINK</div>
+
+      <div id="poller" hx-get="" hx-trigger="load, every 10s" hx-swap="none"></div>
+
+      <div id="content" class="card">
+        <p>Memuat payment link...</p>
+      </div>
+      <p id="error" class="error" hidden>Terjadi kendala saat mengambil data payment link.</p>
+      <p class="note">Provider aktif saat ini: QRIS via Mobile Banking</p>
+    </main>
+
+    <script>
+      (function () {
+        const content = document.getElementById("content");
+        const errorNode = document.getElementById("error");
+        const poller = document.getElementById("poller");
+
+        function escapeHtml(v) {
+          return String(v || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        }
+
+        function rupiah(nominal) {
+          const n = Number(nominal || 0);
+          return "Rp " + n.toLocaleString("id-ID");
+        }
+
+        function fmtTime(iso) {
+          if (!iso) return "-";
+          const date = new Date(iso);
+          if (Number.isNaN(date.getTime())) return "-";
+          return (
+            new Intl.DateTimeFormat("id-ID", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "Asia/Jakarta",
+            }).format(date) + " WIB"
+          );
+        }
+
+        function getPaymentID() {
+          const params = new URLSearchParams(window.location.search);
+          const fromQuery = params.get("id");
+          if (fromQuery) return fromQuery;
+
+          const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+          if (!path || path === "pay.html") return "";
+          return path.split("/")[0];
+        }
+
+        function baseCard(data, statusLabel, badgeClass) {
+          return `
+            <div class="head">
+              <h1 class="title">Payment Link Satsetin</h1>
+              <span class="badge ${badgeClass}">${statusLabel}</span>
+            </div>
+            <div class="grid">
+              <div class="item"><div class="k">ID</div><div class="v">${escapeHtml(data.id || "-")}</div></div>
+              <div class="item"><div class="k">Provider</div><div class="v">QRIS</div></div>
+              <div class="item"><div class="k">Nominal Dasar</div><div class="v">${rupiah(data.amount)}</div></div>
+              <div class="item"><div class="k">Total Bayar</div><div class="v">${rupiah(data.total_amount)}</div></div>
+              <div class="item"><div class="k">Catatan</div><div class="v">${escapeHtml(data.note || "-")}</div></div>
+              <div class="item"><div class="k">Batas Waktu</div><div class="v">${fmtTime(data.expires_at)}</div></div>
+            </div>
+          `;
+        }
+
+        function renderPending(data) {
+          content.innerHTML =
+            baseCard(data, "Pending", "pending") +
+            `
+              <div class="state pending">
+                <p>Scan QRIS berikut untuk menyelesaikan pembayaran.</p>
+                <img class="qr" src="${escapeHtml(data.qr_image_url || "")}" alt="QRIS" />
+                <p class="muted">Halaman ini cek status otomatis setiap 10 detik.</p>
+              </div>
+            `;
+        }
+
+        function renderPaid(data, message) {
+          content.innerHTML =
+            baseCard(data, "Sudah Dibayar", "paid") +
+            `
+              <div class="state paid">
+                <p>${escapeHtml(message || "payment link sudah dibayar")}</p>
+                <p class="muted">Waktu bayar: ${fmtTime(data.paid_at)}</p>
+              </div>
+            `;
+        }
+
+        function renderExpired(data, message) {
+          content.innerHTML =
+            baseCard(data, "Expired", "expired") +
+            `
+              <div class="state expired">
+                <p>${escapeHtml(message || "payment link sudah expired")}</p>
+                <p class="muted">Expired pada: ${fmtTime(data.expires_at)}</p>
+              </div>
+            `;
+        }
+
+        function renderNotFound() {
+          content.innerHTML = `
+            <div class="head">
+              <h1 class="title">Payment Link</h1>
+              <span class="badge expired">404</span>
+            </div>
+            <div class="state expired">
+              <p>Payment link tidak ditemukan atau sudah lewat masa tampil.</p>
+            </div>
+          `;
+        }
+
+        const paymentID = getPaymentID();
+        if (!paymentID) {
+          renderNotFound();
+          return;
+        }
+
+        const apiURL = `https://api.satsetin.id/pay/${encodeURIComponent(paymentID)}`;
+        poller.setAttribute("hx-get", apiURL);
+        htmx.process(poller);
+
+        document.body.addEventListener("htmx:afterRequest", function (evt) {
+          if (evt.target !== poller) return;
+
+          const xhr = evt.detail.xhr;
+          let payload = null;
+          try {
+            payload = JSON.parse(xhr.responseText || "{}");
+          } catch (_) {
+            errorNode.hidden = false;
+            return;
+          }
+
+          errorNode.hidden = true;
+
+          if (xhr.status === 200 && payload && payload.data) {
+            renderPending(payload.data);
+            return;
+          }
+
+          if (xhr.status === 410 && payload && payload.data) {
+            if (payload.data.status === "paid") {
+              renderPaid(payload.data, payload.message);
+              return;
+            }
+            renderExpired(payload.data, payload.message);
+            return;
+          }
+
+          if (xhr.status === 404) {
+            renderNotFound();
+            return;
+          }
+
+          errorNode.hidden = false;
+        });
+      })();
+    </script>
+  </body>
+</html>

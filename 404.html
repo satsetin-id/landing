@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satsetin</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+        var first = path.split("/")[0] || "";
+        var isStaticAsset = /\.[a-zA-Z0-9]+$/.test(first);
+
+        if (first && !isStaticAsset) {
+          var dest = "/pay.html?id=" + encodeURIComponent(first);
+          if (window.location.search) {
+            dest += "&" + window.location.search.slice(1);
+          }
+          window.location.replace(dest);
+          return;
+        }
+
+        window.location.replace("/");
+      })();
+    </script>
+  </body>
+</html>
